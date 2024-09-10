@@ -81,7 +81,8 @@ jobs:
             npm version $next_version --allow-same-version=true --git-tag-version=false
             echo "new_version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
           fi
-      - uses: planetscale/ghcommit-action@v0.1.6
+      - name: Commit and Push
+        uses: planetscale/ghcommit-action@v0.1.6
         if: ${{ steps.update.outputs.new_version }}
         with:
           commit_message: "Updating version to ${{ steps.update.outputs.new_version }}"
