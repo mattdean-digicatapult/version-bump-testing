@@ -35,7 +35,7 @@ jobs:
           MAIN_VERSION: ${{ steps.main.outputs.main_version }}
           VERSION_LABEL: ${{ steps.label.outputs.version_label }}
         run: |
-          CHANGE_TYPE=${$VERSION_LABEL:2}
+          CHANGE_TYPE=${VERSION_LABEL:2}
           npm version $MAIN_VERSION --allow-same-version=true --git-tag-version=false
           npm version $CHANGE_TYPE
           npm version
