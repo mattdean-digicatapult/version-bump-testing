@@ -40,6 +40,7 @@ jobs:
           git config user.email github-actions@github.com
 
       - name: Update version
+        id: update
         if: ${{ steps.label.outputs.version_label }}
         env:
           MAIN_VERSION: ${{ steps.main.outputs.main_version }}
@@ -74,7 +75,17 @@ jobs:
           }
 
           next_version=$(get_next_version $MAIN_VERSION ${VERSION_LABEL:2})
+          current_version=$(jq -r .version package.json)
 
-          npm version $next_version --allow-same-version=true --git-tag-version=false
-          git commit -S -a -m "Bump version to $(jq -r .version package.json)"
-          git push
+          if [ "$next_version" != "$current_version" ]; then
+            npm version $next_version --allow-same-version=true --git-tag-version=false
+            echo "new_version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+          fi
+      - uses: planetscale/ghcommit-action@v0.1.6
+        if: ${{ steps.update.outputs.new_version }}
+        with:
+          commit_message: "Updating version to"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
