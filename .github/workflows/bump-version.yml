@@ -34,20 +34,47 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
+      - name: COnfigure git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
       - name: Update version
         if: ${{ steps.label.outputs.version_label }}
         env:
           MAIN_VERSION: ${{ steps.main.outputs.main_version }}
           VERSION_LABEL: ${{ steps.label.outputs.version_label }}
         run: |
-          CHANGE_TYPE=${VERSION_LABEL:2}
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          get_next_version() {
+            local base="$1"
+            local increment_type="$2"
+            local RE='[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\([0-9A-Za-z-]*\)'
 
-          npm version $MAIN_VERSION --allow-same-version=true --git-tag-version=false
-          git commit -a -m "wip"
-          npm version $CHANGE_TYPE
-          git reset HEAD^
+            local MAJOR=$(echo $base | sed -e "s#$RE#\1#")
+            local MINOR=$(echo $base | sed -e "s#$RE#\2#")
+            local PATCH=$(echo $base | sed -e "s#$RE#\3#")
 
-          git commit -a -m "Bump version to $(jq -r .version package.json)"
+            case "$increment_type" in
+            major)
+              ((MAJOR += 1))
+              ((MINOR = 0))
+              ((PATCH = 0))
+              ;;
+            minor)
+              ((MINOR += 1))
+              ((PATCH = 0))
+              ;;
+            patch)
+              ((PATCH += 1))
+              ;;
+            esac
+
+            local NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "$NEXT_VERSION"
+          }
+
+          next_version=$(get_next_version $MAIN_VERSION ${VERSION_LABEL:2})
+
+          npm version $next_version --allow-same-version=true --git-tag-version=false
+          git commit -S -a -m "Bump version to $(jq -r .version package.json)"
           git push
