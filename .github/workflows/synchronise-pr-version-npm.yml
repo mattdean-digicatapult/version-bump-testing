@@ -38,7 +38,7 @@ jobs:
           echo "pr_branch=$PR_BRANCH" >> $GITHUB_OUTPUT
           echo "version_label=$VERSION_LABEL" >> $GITHUB_OUTPUT
       - name: Retrieve main branch version
-        id: main
+        id: main-details
         run: |
           MAIN_VERSION=$(jq -r .version package.json)
           echo "Version on `main`: $MAIN_VERSION"
@@ -56,7 +56,7 @@ jobs:
         id: update
         if: ${{ steps.pr-details.outputs.version_label }}
         env:
-          MAIN_VERSION: ${{ steps.main.outputs.main_version }}
+          MAIN_VERSION: ${{ steps.main-details.outputs.main_version }}
           VERSION_LABEL: ${{ steps.pr-details.outputs.version_label }}
         run: |
           get_next_version() {
