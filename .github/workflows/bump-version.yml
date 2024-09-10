@@ -11,10 +11,31 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Retrieve version label
+        id: label
         run: |
           VERSION_LABEL=$(gh pr view $PR_NUMBER --json labels --jq '.labels | map(select(.name == "v:major" or .name == "v:minor" or .name == "v:patch")) | sort_by(.name) | .[0].name')
           echo "Version label detected: $VERSION_LABEL"
           echo "version_label=$VERSION_LABEL" >> $GITHUB_OUTPUT
+      - name: Retrieve main branch version
+        id: main
+        run: |
+          MAIN_VERSION=$(jq -r .version package.json)
+          echo "Version on `main`: $MAIN_VERSION"
+          echo "main_version=$MAIN_VERSION" >> $GITHUB_OUTPUT
+      - name: Checkout PR
+        uses: actions/checkout@v4
+      - name: Update version
+        if: ${{ steps.label.outputs.version_label }}
+        env:
+          MAIN_VERSION: ${{ steps.main.outputs.main_version }}
+          VERSION_LABEL: ${{ steps.label.outputs.version_label }}
+        run: |
+          CHANGE_TYPE=${$VERSION_LABEL:2}
+          npm version $MAIN_VERSION --allow-same-version=true --git-tag-version=false
+          npm version $CHANGE_TYPE
+          npm version
