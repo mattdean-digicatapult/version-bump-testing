@@ -102,7 +102,7 @@ jobs:
         with:
           commit_message: "Updating version to ${{ steps.update.outputs.new_version }}"
           repo: ${{ github.repository }}
-          branch: ${{ github.head_ref || github.ref_name }}
+          branch: ${{ steps.pr-details.outputs.pr_branch }}
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Remove stale
