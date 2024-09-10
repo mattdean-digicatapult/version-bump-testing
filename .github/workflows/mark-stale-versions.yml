@@ -4,6 +4,9 @@ on:
   push:
     branches: main
 
+permissions:
+  pull-requests: write
+
 jobs:
   find-pull-requests:
     runs-on: ubuntu-latest
@@ -28,6 +31,8 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
       - name: make version stale
         env:
           PR_NUMBER: ${{ matrix.pr_number }}
