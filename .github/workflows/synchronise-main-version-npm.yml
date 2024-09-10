@@ -24,7 +24,6 @@ jobs:
           PR_LIST=$(gh pr list --base main --search "label:v:major,v:minor,v:patch" --json number --jq "map(.number)")
           echo "pr_list=$PR_LIST" >> $GITHUB_OUTPUT
   synchronise-pull-requests:
-    runs-on: ubuntu-latest
     needs: find-pull-requests
     strategy:
       matrix:
