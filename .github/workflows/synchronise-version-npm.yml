@@ -1,0 +1,102 @@
+name: Synchronise Version
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synchronise-version:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Retrieve version label
+        id: label
+        run: |
+          VERSION_LABEL=$(gh pr view $PR_NUMBER --json labels --jq '.labels | map(select(.name == "v:major" or .name == "v:minor" or .name == "v:patch")) | sort_by(.name) | .[0].name')
+          echo "Version label detected: $VERSION_LABEL"
+          echo "version_label=$VERSION_LABEL" >> $GITHUB_OUTPUT
+      - name: Retrieve main branch version
+        id: main
+        run: |
+          MAIN_VERSION=$(jq -r .version package.json)
+          echo "Version on `main`: $MAIN_VERSION"
+          echo "main_version=$MAIN_VERSION" >> $GITHUB_OUTPUT
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Configure git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - name: Update version
+        id: update
+        if: ${{ steps.label.outputs.version_label }}
+        env:
+          MAIN_VERSION: ${{ steps.main.outputs.main_version }}
+          VERSION_LABEL: ${{ steps.label.outputs.version_label }}
+        run: |
+          get_next_version() {
+            local base="$1"
+            local increment_type="$2"
+            local RE='[^0-9]*\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\([0-9A-Za-z-]*\)'
+
+            local MAJOR=$(echo $base | sed -e "s#$RE#\1#")
+            local MINOR=$(echo $base | sed -e "s#$RE#\2#")
+            local PATCH=$(echo $base | sed -e "s#$RE#\3#")
+
+            case "$increment_type" in
+            major)
+              ((MAJOR += 1))
+              ((MINOR = 0))
+              ((PATCH = 0))
+              ;;
+            minor)
+              ((MINOR += 1))
+              ((PATCH = 0))
+              ;;
+            patch)
+              ((PATCH += 1))
+              ;;
+            esac
+
+            local NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "$NEXT_VERSION"
+          }
+
+          next_version=$(get_next_version $MAIN_VERSION ${VERSION_LABEL:2})
+          current_version=$(jq -r .version package.json)
+
+          if [ "$next_version" != "$current_version" ]; then
+            npm version $next_version --allow-same-version=true --git-tag-version=false
+            echo "new_version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+          else
+            echo "Version does not need updating"
+          fi
+      - name: Commit and Push
+        uses: planetscale/ghcommit-action@v0.1.6
+        if: ${{ steps.update.outputs.new_version }}
+        with:
+          commit_message: "Updating version to ${{ steps.update.outputs.new_version }}"
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Remove stale
+        run: |
+          gh pr edit $PR_NUMBER --remove-label v:stale || true

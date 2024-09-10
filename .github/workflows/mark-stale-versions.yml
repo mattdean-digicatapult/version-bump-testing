@@ -1,0 +1,35 @@
+name: Mark Stale Versions
+
+on:
+  push:
+    branches: main
+
+jobs:
+  find-pull-requests:
+    runs-on: ubuntu-latest
+    outputs:
+      pr_list: ${{ steps.find.outputs.pr_list }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: find pull requests
+        id: find
+        run: |
+          PR_LIST=$(gh pr list --base main --search "label:v:major,v:minor,v:patch" --json number --jq "map(.number)")
+          echo "pr_list=$PR_LIST" >> $GITHUB_OUTPUT
+  mark_stale:
+    runs-on: ubuntu-latest
+    needs: find-pull-requests
+    strategy:
+      matrix:
+        pr_number: ${{ fromJSON(needs.find-pull-requests.outputs.pr_list) }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: make version stale
+        env:
+          PR_NUMBER: ${{ matrix.pr_number }}
+        run: |
+          gh pr edit $PR_NUMBER --add-label v:stale
