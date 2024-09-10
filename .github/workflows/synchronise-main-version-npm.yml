@@ -30,6 +30,8 @@ jobs:
       matrix:
         pr_number: ${{ fromJSON(needs.find-pull-requests.outputs.pr_list) }}
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
       - uses: ./.github/workflows/synchronise-pr-version-npm.yml
         with:
           pr-number: ${{ matrix.pr_number }}
