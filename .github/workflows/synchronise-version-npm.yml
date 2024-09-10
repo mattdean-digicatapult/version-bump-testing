@@ -1,14 +1,19 @@
-name: Bump version
+name: Synchronise Version
 
 on:
   pull_request:
     types: [labeled, unlabeled, opened, reopened, synchronize]
 
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   synchronise-version:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -91,3 +96,6 @@ jobs:
           branch: ${{ github.head_ref || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Remove stale
+        run: |
+          gh pr edit $PR_NUMBER --remove-label v:stale || true
