@@ -30,6 +30,6 @@ jobs:
       matrix:
         pr_number: ${{ fromJSON(needs.find-pull-requests.outputs.pr_list) }}
     steps:
-      - uses: ./.github/workflows/synchronise-pr-version-npm.yml@main
+      - uses: ./.github/workflows/synchronise-pr-version-npm.yml
         with:
           pr-number: ${{ matrix.pr_number }}
