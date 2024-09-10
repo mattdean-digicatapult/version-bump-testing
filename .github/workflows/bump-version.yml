@@ -37,6 +37,7 @@ jobs:
         run: |
           CHANGE_TYPE=${VERSION_LABEL:2}
           npm version $MAIN_VERSION --allow-same-version=true --git-tag-version=false
-          git status
+          git commit -A -m "wip"
           npm version $CHANGE_TYPE
+          git commit -A --ammend -m "Bump version to $(jq -r .version package.json)"
           npm version
