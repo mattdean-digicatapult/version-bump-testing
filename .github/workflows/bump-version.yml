@@ -2,7 +2,7 @@ name: Bump version
 
 on:
   pull_request:
-    types: [labeled, opened, reopened, synchronize]
+    types: [labeled, unlabeled, opened, reopened, synchronize]
 
 jobs:
   check-label:
@@ -46,5 +46,4 @@ jobs:
 
           npm version $CHANGE_TYPE
           git commit -a --amend -m "Bump version to $(jq -r .version package.json)"
-
-          npm version
+          git push
