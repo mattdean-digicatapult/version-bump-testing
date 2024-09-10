@@ -3,6 +3,11 @@ name: Synchronise Version
 on:
   pull_request:
     types: [labeled, unlabeled, opened, reopened, synchronize]
+  workflow_call:
+    inputs:
+      pr-number:
+        required: true
+        type: number
 
 permissions:
   contents: write
@@ -17,17 +22,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_NUMBER: ${{ inputs.pr-number || github.event.pull_request.number }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
-      - name: Retrieve version label
-        id: label
+      - name: Retrieve PR details
+        id: pr-details
         run: |
           VERSION_LABEL=$(gh pr view $PR_NUMBER --json labels --jq '.labels | map(select(.name == "v:major" or .name == "v:minor" or .name == "v:patch")) | sort_by(.name) | .[0].name')
-          echo "Version label detected: $VERSION_LABEL"
+          PR_BRANCH=$(gh pr view $PR_NUMBER --json headRefName --jq .headRefName)
+          echo "Pull request branch: $PR_BRANCH"
+          echo "Pull Request Version label: $VERSION_LABEL"
+          echo "pr_branch=$PR_BRANCH" >> $GITHUB_OUTPUT
           echo "version_label=$VERSION_LABEL" >> $GITHUB_OUTPUT
       - name: Retrieve main branch version
         id: main
@@ -39,17 +47,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ steps.pr-details.outputs.pr_branch }}
       - name: Configure git
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
       - name: Update version
         id: update
-        if: ${{ steps.label.outputs.version_label }}
+        if: ${{ steps.pr-details.outputs.version_label }}
         env:
           MAIN_VERSION: ${{ steps.main.outputs.main_version }}
-          VERSION_LABEL: ${{ steps.label.outputs.version_label }}
+          VERSION_LABEL: ${{ steps.pr-details.outputs.version_label }}
         run: |
           get_next_version() {
             local base="$1"
