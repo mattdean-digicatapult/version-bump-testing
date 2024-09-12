@@ -96,6 +96,7 @@ jobs:
           fi
       - name: GH setup token
         id: token
+        if: ${{ steps.update.outputs.new_version }}
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_ID: ${{ secrets.APP_ID }}
