@@ -1,0 +1,13 @@
+name: Some checks
+
+on:
+  pull_request:
+  workflow_call:
+
+jobs:
+  check-things:
+    runs-on: ubuntu-latest
+    steps:
+      - name: is true
+        run: |
+          echo "hello world" || true

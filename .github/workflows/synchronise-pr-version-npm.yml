@@ -48,10 +48,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.pr-details.outputs.pr_branch }}
-      - name: Configure git
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
       - name: Update version
         id: update
         if: ${{ steps.pr-details.outputs.version_label }}
@@ -108,3 +104,6 @@ jobs:
       - name: Remove stale
         run: |
           gh pr edit $PR_NUMBER --remove-label v:stale || true
+  run-checks:
+    needs: synchronise-version
+    uses: ./.github/workflows/pr-check.yml
