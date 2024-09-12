@@ -23,6 +23,8 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR_NUMBER: ${{ inputs.pr-number || github.event.pull_request.number }}
+    outputs:
+      new-version: ${{ steps.update.outputs.new_version }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -106,4 +108,5 @@ jobs:
           gh pr edit $PR_NUMBER --remove-label v:stale || true
   run-checks:
     needs: synchronise-version
+    if: ${{ needs.synchronise-version.outputs.new-version }}
     uses: ./.github/workflows/pr-check.yml
