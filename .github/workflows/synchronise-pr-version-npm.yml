@@ -94,28 +94,32 @@ jobs:
           else
             echo "Version does not need updating"
           fi
-      - name: GH setup token
+      - name: Commit and Push
         id: token
         if: ${{ steps.update.outputs.new_version }}
-        env:
-          APP_KEY: ${{ secrets.APP_KEY }}
-          APP_ID: ${{ secrets.APP_ID }}
-          APP_INSTALLATION_ID: ${{ secrets.APP_INSTALLATION_ID }}
+
         run: |
           gh extension install Link-/gh-token
           mkdir ${{ runner.temp }}/secrets
           echo "$APP_KEY" >> ${{ runner.temp }}/secrets/app_key.pem
           jwt=$(gh token generate --key ${{ runner.temp }}/secrets/app_key.pem --app-id $APP_ID --installation-id $APP_INSTALLATION_ID | jq ".token")
           echo "app-jwt=$jwt" >> $GITHUB_OUTPUT
-      - name: Commit and Push
-        uses: planetscale/ghcommit-action@v0.1.6
-        if: ${{ steps.update.outputs.new_version }}
-        with:
-          commit_message: "Updating version to ${{ steps.update.outputs.new_version }}"
-          repo: ${{ github.repository }}
-          branch: ${{ steps.pr-details.outputs.pr_branch }}
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
         env:
-          GITHUB_TOKEN: ${{ steps.token.outputs.app-jwt }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_ID: ${{ secrets.APP_ID }}
+        with:
+          app-id: ${{ env.APP_ID }}
+          private-key: ${{ env.APP_KEY }}
+      - name: Commit and push
+        id: commit
+        uses: flex-development/gh-commit@1.0.0
+        with:
+          message: "Updating version to ${{ steps.update.outputs.new_version }}"
+          ref: ${{ steps.pr-details.outputs.pr_branch }}
+          token: ${{ steps.generate-token.outputs.token }}
       - name: Remove stale
         run: |
           gh pr edit $PR_NUMBER --remove-label v:stale || true
