@@ -94,6 +94,18 @@ jobs:
           else
             echo "Version does not need updating"
           fi
+      - name: GH setup token
+        id: token
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_INSTALLATION_ID: ${{ secrets.APP_INSTALLATION_ID }}
+        run: |
+          gh extension install Link-/gh-token
+          mkdir ${{ runner.temp }}/secrets
+          cat $APP_KEY >> ${{ runner.temp }}/secrets/app_key.pem
+          jwt=$(gh token generate  --key ${{ runner.temp }}/secrets/app_key.pem --app-id $APP_ID --installation-id $APP_INSTALLATION_ID | jq ".token")
+          echo "app-jwt=$jwt" >> $GITHUB_OUTPUT
       - name: Commit and Push
         uses: planetscale/ghcommit-action@v0.1.6
         if: ${{ steps.update.outputs.new_version }}
@@ -102,7 +114,7 @@ jobs:
           repo: ${{ github.repository }}
           branch: ${{ steps.pr-details.outputs.pr_branch }}
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN: ${{ steps.token.outputs.app-jwt }}
       - name: Remove stale
         run: |
           gh pr edit $PR_NUMBER --remove-label v:stale || true
