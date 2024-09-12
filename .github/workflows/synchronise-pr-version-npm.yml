@@ -14,7 +14,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.pr-number || github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -23,6 +23,8 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR_NUMBER: ${{ inputs.pr-number || github.event.pull_request.number }}
+    outputs:
+      new-version: ${{ steps.update.outputs.new_version }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -38,7 +40,7 @@ jobs:
           echo "pr_branch=$PR_BRANCH" >> $GITHUB_OUTPUT
           echo "version_label=$VERSION_LABEL" >> $GITHUB_OUTPUT
       - name: Retrieve main branch version
-        id: main
+        id: main-details
         run: |
           MAIN_VERSION=$(jq -r .version package.json)
           echo "Version on `main`: $MAIN_VERSION"
@@ -48,15 +50,11 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ steps.pr-details.outputs.pr_branch }}
-      - name: Configure git
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
       - name: Update version
         id: update
         if: ${{ steps.pr-details.outputs.version_label }}
         env:
-          MAIN_VERSION: ${{ steps.main.outputs.main_version }}
+          MAIN_VERSION: ${{ steps.main-details.outputs.main_version }}
           VERSION_LABEL: ${{ steps.pr-details.outputs.version_label }}
         run: |
           get_next_version() {
