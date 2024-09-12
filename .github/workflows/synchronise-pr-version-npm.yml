@@ -103,8 +103,8 @@ jobs:
         run: |
           gh extension install Link-/gh-token
           mkdir ${{ runner.temp }}/secrets
-          cat $APP_KEY >> ${{ runner.temp }}/secrets/app_key.pem
-          jwt=$(gh token generate  --key ${{ runner.temp }}/secrets/app_key.pem --app-id $APP_ID --installation-id $APP_INSTALLATION_ID | jq ".token")
+          cat "$APP_KEY" >> ${{ runner.temp }}/secrets/app_key.pem
+          jwt=$(gh token generate --key ${{ runner.temp }}/secrets/app_key.pem --app-id $APP_ID --installation-id $APP_INSTALLATION_ID | jq ".token")
           echo "app-jwt=$jwt" >> $GITHUB_OUTPUT
       - name: Commit and Push
         uses: planetscale/ghcommit-action@v0.1.6
