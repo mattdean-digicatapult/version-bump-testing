@@ -113,13 +113,20 @@ jobs:
         with:
           app-id: ${{ env.APP_ID }}
           private-key: ${{ env.APP_KEY }}
-      - name: Commit and push
-        id: commit
-        uses: flex-development/gh-commit@1.0.0
+      # - name: Commit and push
+      #   id: commit
+      #   uses: flex-development/gh-commit@1.0.0
+      #   with:
+      #     message: "Updating version to ${{ steps.update.outputs.new_version }}"
+      #     ref: ${{ steps.pr-details.outputs.pr_branch }}
+      #     token: ${{ steps.generate-token.outputs.token }}
+      - uses: planetscale/ghcommit-action@v0.1.6
         with:
-          message: "Updating version to ${{ steps.update.outputs.new_version }}"
-          ref: ${{ steps.pr-details.outputs.pr_branch }}
-          token: ${{ steps.generate-token.outputs.token }}
+          commit_message: "Updating version to ${{ steps.update.outputs.new_version }}"
+          repo: ${{ github.repository }}
+          branch: ${{ steps.pr-details.outputs.pr_branch }}
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Remove stale
         run: |
           gh pr edit $PR_NUMBER --remove-label v:stale || true
