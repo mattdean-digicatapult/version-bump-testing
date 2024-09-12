@@ -106,7 +106,3 @@ jobs:
       - name: Remove stale
         run: |
           gh pr edit $PR_NUMBER --remove-label v:stale || true
-  run-checks:
-    needs: synchronise-version
-    if: ${{ needs.synchronise-version.outputs.new-version }}
-    uses: ./.github/workflows/pr-check.yml

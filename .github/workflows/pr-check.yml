@@ -2,7 +2,9 @@ name: Some checks
 
 on:
   pull_request:
-  workflow_call:
+  workflow_run:
+    types: completed
+    workflows: [Synchronise Version]
 
 jobs:
   check-things:
